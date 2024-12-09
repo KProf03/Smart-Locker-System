@@ -14,6 +14,11 @@
         <Column field="email" header="Email"></Column>
         <Column field="subscriptionPlan" header="Subscription Plan"></Column>
         <Column field="refernum" header="Reference No."></Column>
+        <Column field="dateRegistered" header="Date Registered">
+          <template #body="slotProps">
+            <span>{{ formatDate(slotProps.data.dateRegistered) }}</span>
+          </template>
+        </Column>
         <Column header="Payment Proof">
           <template #body="slotProps">
             <img 
@@ -56,6 +61,11 @@
         <Column field="subscriptionPlan" header="Subscription Plan"></Column>
         <Column field="refernum" header="Reference No."></Column>
         <Column field="lockerId" header="Locker ID"></Column>
+        <Column header="Countdown (Days)">
+          <template #body="slotProps">
+            <span>{{ slotProps.data.countdown }} days</span>
+          </template>
+        </Column>
         <Column header="Payment Proof">
           <template #body="slotProps">
             <img 
@@ -79,6 +89,8 @@
       </DataTable>
     </div>
 
+
+
     <!-- Assign Locker Dialog -->
     <Dialog v-model:visible="showAssignLockerModal" modal header="Assign Locker">
       <div class="p-4">
@@ -97,6 +109,7 @@
         />
       </div>
     </Dialog>
+
     <!-- Payment Proof Preview Modal -->
     <Dialog v-model:visible="showProofModal" modal header="Payment Proof">
       <div class="p-4">
@@ -115,11 +128,12 @@ import { ref, computed } from 'vue';
 import { useLockerStore } from '../stores/locker';
 import Dropdown from 'primevue/dropdown';
 
+// Store
 const store = useLockerStore();
 
 // Modal and form data
 const showAssignLockerModal = ref(false);
-const showProofModal = ref(false); // Declare this
+const showProofModal = ref(false);
 const selectedLocker = ref(null);
 const selectedUser = ref(null);
 const selectedProofUrl = ref('');
@@ -135,12 +149,11 @@ const showAssignModal = (user) => {
   showAssignLockerModal.value = true;
 };
 
-//Show Payment Proof
+// Show Payment Proof Modal
 const showPaymentProof = (url) => {
   selectedProofUrl.value = url;
   showProofModal.value = true;
 };
-
 
 // Assign Locker to User
 const assignLockerToUser = () => {
@@ -164,5 +177,12 @@ const removeAssignment = (serialNumber, lockerId) => {
   if (confirm('Are you sure you want to remove this assignment?')) {
     store.removeAssignment(serialNumber, lockerId);
   }
+};
+
+// Format date for display
+const formatDate = (date) => {
+  if (!date) return 'N/A';
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(date).toLocaleDateString(undefined, options);
 };
 </script>

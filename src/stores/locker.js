@@ -28,11 +28,12 @@ export const useLockerStore = defineStore('locker', () => {
   const registerUser = (userData) => {
     const serialNumber = generateSerialNumber();
     const paymentProofUrl = userData.paymentProof ? URL.createObjectURL(userData.paymentProof) : null;
-    
+
     users.value.push({
       ...userData,
       serialNumber,
-      paymentProofUrl
+      paymentProofUrl,
+      dateRegistered: new Date().toISOString(), // Add dateRegistered
     });
     return serialNumber;
   };
@@ -51,25 +52,49 @@ export const useLockerStore = defineStore('locker', () => {
       locker.occupied = true;
       locker.registrant = serialNumber;
 
-      // Add lockerId to the user's data
+      // Add lockerId and dateAssigned to the user's data
       user.lockerId = lockerId;
+      user.dateAssigned = new Date().toISOString(); // Record the current date
     }
   };
 
   // Remove locker assignment
   const removeAssignment = (serialNumber, lockerId) => {
     const locker = lockers.value.find((l) => l.id === lockerId);
-  
+
     if (locker && locker.registrant === serialNumber) {
       // Reset the locker
       locker.occupied = false;
       locker.registrant = null;
-  
+
       // Completely remove the user from the `users` array
       users.value = users.value.filter((user) => user.serialNumber !== serialNumber);
     }
   };
-  
+
+  // Calculate countdown days
+  const calculateCountdownDays = (subscriptionPlan, dateAssigned) => {
+    const now = new Date();
+    const assignedDate = new Date(dateAssigned);
+
+    let durationInDays = 0;
+
+    if (subscriptionPlan === "Monthly") {
+      durationInDays = 30; // 30 days
+    } else if (subscriptionPlan === "Semestral") {
+      durationInDays = 182; // Approx. 6 months (182 days)
+    } else if (subscriptionPlan === "Yearly") {
+      durationInDays = 365; // 1 year (365 days)
+    }
+
+    const expirationDate = new Date(assignedDate);
+    expirationDate.setDate(assignedDate.getDate() + durationInDays);
+
+    const diffInTime = expirationDate.getTime() - now.getTime();
+    const remainingDays = Math.ceil(diffInTime / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
+
+    return Math.max(remainingDays, 0); // Ensure it doesn't go negative
+  };
 
   // Computed properties
   const availableLockers = computed(() =>
@@ -81,10 +106,12 @@ export const useLockerStore = defineStore('locker', () => {
   );
 
   const assignedUsers = computed(() =>
-    users.value.filter((user) => user.lockerId).map((user) => ({
-      ...user,
-      lockerId: user.lockerId, // Ensure lockerId is available
-    }))
+    users.value
+      .filter((user) => user.lockerId)
+      .map((user) => ({
+        ...user,
+        countdown: calculateCountdownDays(user.subscriptionPlan, user.dateAssigned), // Add countdown
+      }))
   );
 
   return {
